@@ -1,5 +1,9 @@
 {
   "redirects": [
-    { "source": "https://agenda-tcreamype.vercel.app", "destination": "https://agenda-8lbgh6vuy-tcreamype.vercel.app", "permanent": true }
+    {
+      "source": "/",
+      "destination": "https://agenda-8lbgh6vuy-tcreamype.vercel.app",
+      "permanent": true
+    }
   ]
 }
