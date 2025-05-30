@@ -1,5 +1,16 @@
+// 1. FUNCIÓN PARA ESCAPAR MARKDOWN (al inicio del archivo)
+const escapeMarkdown = (text) => text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
+
+// 2. ICONOS POR ACCIÓN (constante global)
+const actionIcons = {
+  edit: '✏️',
+  create: '🆕',
+  delete: '❌',
+  default: '📢'
+};
+
 export default async (req, res) => {
-  // 1. Validación de seguridad
+  // 3. VALIDACIONES INICIALES
   if (req.headers.authorization !== `Bearer ${process.env.API_SECRET}`) {
     return res.status(401).json({ error: 'No autorizado' });
   }
@@ -9,24 +20,25 @@ export default async (req, res) => {
   }
 
   try {
-    const { user, changes, actionType } = req.body;
+    const { user, changes, actionType = 'default' } = req.body;
 
-    // 2. Formateo avanzado del mensaje
-    const message = `📅 *${actionType === 'edit' ? 'Edición' : 'Nueva entrada'} en Agenda*\n\n` +
-                   `• *Usuario:* ${user || 'Anónimo'}\n` +
-                   `• *Cambios:* \`\`\`${changes}\`\`\``;
+    // 4. PREPARACIÓN DEL MENSAJE CON FORMATO
+    const icon = actionIcons[actionType] || actionIcons.default;
+    const safeChanges = escapeMarkdown(changes);
+    const safeUser = escapeMarkdown(user || 'Anónimo');
 
-    // 3. Configuración de botones (solo para acciones que requieran aprobación)
-    const replyMarkup = actionType === 'edit' ? {
-      reply_markup: {
-        inline_keyboard: [[
-          { text: "✅ Aprobar", callback_data: "approve" },
-          { text: "❌ Rechazar", callback_data: "reject" }
-        ]]
-      }
-    } : {};
+    const message = `${icon} *${actionType.toUpperCase()} en Agenda*\n\n` +
+                   `• *Usuario:* ${safeUser}\n` +
+                   `• *Cambios:* \`\`\`${safeChanges}\`\`\``;
 
-    // 4. Envío a Telegram
+    // 5. LOGS DE DEPURACIÓN (útil en desarrollo)
+    console.log('Enviando a Telegram:', {
+      chat_id: process.env.CHAT_ID,
+      text: message.substring(0, 50) + '...',
+      actionType
+    });
+
+    // 6. ENVÍO A TELEGRAM
     const response = await fetch(
       `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
       {
@@ -36,7 +48,14 @@ export default async (req, res) => {
           chat_id: process.env.CHAT_ID,
           text: message,
           parse_mode: 'MarkdownV2',
-          ...replyMarkup
+          ...(actionType === 'edit' && {
+            reply_markup: {
+              inline_keyboard: [[
+                { text: "✅ Aprobar", callback_data: "approve" },
+                { text: "❌ Rechazar", callback_data: "reject" }
+              ]]
+            }
+          })
         }),
       }
     );
@@ -46,6 +65,9 @@ export default async (req, res) => {
 
   } catch (error) {
     console.error('Error en Telegram API:', error);
-    res.status(500).json({ error: 'Error al notificar' });
+    res.status(500).json({ 
+      error: 'Error al notificar',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
