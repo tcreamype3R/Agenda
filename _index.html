@@ -254,6 +254,11 @@
     </div>
 
     <script>
+        // En lugar de llamar directamente a Firebase
+fetch('/api/add-reading', {
+  method: 'POST',
+  body: JSON.stringify({ text: "Génesis 1:1", date: "2023-11-10" })
+});
         // Cargar lecturas y modo al iniciar
         document.addEventListener('DOMContentLoaded', () => {
             loadReadings();
