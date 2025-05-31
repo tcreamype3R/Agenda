@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://elarboldelafe.web.app/favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <title>Agenda de Lecturas Bíblicas</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4cc9f0;
+            --bg-light: #f5f7fa;
+            --bg-dark: #1a1a2e;
+            --text-dark: #e6e6e6;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: var(--bg-light);
+            color: var(--dark);
+            margin: 0;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        body.dark-mode {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .dark-mode .container {
+            background: #16213e;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .input-group {
+            display: flex;
+            flex-grow: 1;
+        }
+        input, select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px 0 0 5px;
+            font-size: 16px;
+            flex: 1;
+        }
+        .dark-mode input, 
+        .dark-mode select {
+            background: #0f3460;
+            color: white;
+            border-color: #555;
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: var(--secondary);
+        }
+        .dark-mode button {
+            background-color: #3a0ca3;
+        }
+        .mode-toggle {
+            background: #333;
+            color: white;
+            border-radius: 5px;
+        }
+        .dark-mode .mode-toggle {
+            background: #555;
+        }
+        .stats-btn {
+            background: #4cc9f0;
+        }
+        .export-btn {
+            background: #38b000;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: var(--light);
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .dark-mode li {
+            background: #0f3460;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #6c757d;
+            opacity: 0.7;
+        }
+        .testament {
+            font-weight: bold;
+            margin-top: 20px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary);
+        }
+        .dark-mode .testament {
+            border-color: #3a0ca3;
+        }
+        .verse-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .verse-reference {
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .dark-mode .verse-reference {
+            color: #4cc9f0;
+        }
+        .verse-date {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+        .delete-btn {
+            background-color: #e63946;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .stats-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f8ff;
+            border-radius: 10px;
+            display: none;
+        }
+        .dark-mode .stats-container {
+            background: #0f3460;
+        }
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .progress-bar {
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .dark-mode .progress-bar {
+            background: #1a1a2e;
+        }
+        .progress {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.5s;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            .input-group {
+                flex-direction: column;
+            }
+            input, select {
+                border-radius: 5px;
+                margin-bottom: 10px;
+            }
+            button {
+                border-radius: 5px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📖 Agenda de Lecturas Bíblicas</h1>
+        
+        <div class="controls">
+            <div class="input-group">
+                <select id="testamentSelect">
+                    <option value="AT">Antiguo Testamento</option>
+                    <option value="NT">Nuevo Testamento</option>
+                </select>
+                <input type="text" id="verseInput" placeholder="Ej: Génesis 1:1">
+                <input type="date" id="dateInput">
+                <button onclick="addReading()">Agregar</button>
+            </div>
+            <div>
+                <button class="mode-toggle" onclick="toggleDarkMode()">🌙 Modo Oscuro</button>
+                <button class="stats-btn" onclick="toggleStats()">📊 Estadísticas</button>
+                <button class="export-btn" onclick="exportToPDF()">📄 Exportar</button>
+            </div>
+        </div>
+        
+        <div id="statsContainer" class="stats-container">
+            <div class="stats-header">
+                <h2>Progreso de Lecturas</h2>
+                <button onclick="toggleStats()">✕</button>
+            </div>
+            <div>
+                <h4>Antiguo Testamento</h4>
+                <div class="progress-bar">
+                    <div id="atProgress" class="progress"></div>
+                </div>
+                <h4>Nuevo Testamento</h4>
+                <div class="progress-bar">
+                    <div id="ntProgress" class="progress"></div>
+                </div>
+            </div>
+        </div>
+        
+        <h3 class="testament">Antiguo Testamento</h3>
+        <ul id="atList"></ul>
+        
+        <h3 class="testament">Nuevo Testamento</h3>
+        <ul id="ntList"></ul>
+    </div>
+
+    <script>
+        // En lugar de llamar directamente a Firebase
+fetch('/api/add-reading', {
+  method: 'POST',
+  body: JSON.stringify({ text: "Génesis 1:1", date: "2023-11-10" })
+});
+        // Cargar lecturas y modo al iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            loadReadings();
+            loadDarkMode();
+            updateStats();
+        });
+
+        // Añadir nueva lectura
+        function addReading() {
+            const testament = document.getElementById('testamentSelect').value;
+            const verseInput = document.getElementById('verseInput');
+            const dateInput = document.getElementById('dateInput');
+            
+            const verseText = verseInput.value.trim();
+            const dateText = dateInput.value || new Date().toISOString().split('T')[0];
+            
+            if (verseText === '') return;
+            
+            const readings = JSON.parse(localStorage.getItem('readings')) || { AT: [], NT: [] };
+            readings[testament].push({
+                text: verseText,
+                date: dateText,
+                completed: false
+            });
+            
+            localStorage.setItem('readings', JSON.stringify(readings));
+            
+            verseInput.value = '';
+            dateInput.value = '';
+            loadReadings();
+            updateStats();
+        }
+
+        // Cargar y mostrar lecturas
+        function loadReadings() {
+            const atList = document.getElementById('atList');
+            const ntList = document.getElementById('ntList');
+            atList.innerHTML = '';
+            ntList.innerHTML = '';
+            
+            const readings = JSON.parse(localStorage.getItem('readings')) || { AT: [], NT: [] };
+            
+            // Mostrar AT
+            readings.AT.forEach((reading, index) => {
+                const li = createReadingItem(reading, index, 'AT');
+                atList.appendChild(li);
+            });
+            
+            // Mostrar NT
+            readings.NT.forEach((reading, index) => {
+                const li = createReadingItem(reading, index, 'NT');
+                ntList.appendChild(li);
+            });
+        }
+
+        // Crear elemento de lectura
+        function createReadingItem(reading, index, testament) {
+            const li = document.createElement('li');
+            if (reading.completed) li.classList.add('completed');
+            
+            const verseInfo = document.createElement('div');
+            verseInfo.className = 'verse-info';
+            
+            const verseRef = document.createElement('span');
+            verseRef.className = 'verse-reference';
+            verseRef.textContent = reading.text;
+            
+            const verseDate = document.createElement('span');
+            verseDate.className = 'verse-date';
+            verseDate.textContent = `Agendado: ${reading.date}`;
+            
+            verseInfo.appendChild(verseRef);
+            verseInfo.appendChild(verseDate);
+            
+            const actions = document.createElement('div');
+            actions.className = 'actions';
+            
+            const completeBtn = document.createElement('button');
+            completeBtn.textContent = reading.completed ? '❌ Rehacer' : '✓ Completar';
+            completeBtn.onclick = () => toggleReading(index, testament);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Eliminar';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                deleteReading(index, testament);
+            };
+            
+            actions.appendChild(completeBtn);
+            actions.appendChild(deleteBtn);
+            
+            li.appendChild(verseInfo);
+            li.appendChild(actions);
+            
+            return li;
+        }
+
+        // Marcar como completada/no completada
+        function toggleReading(index, testament) {
+            const readings = JSON.parse(localStorage.getItem('readings'));
+            readings[testament][index].completed = !readings[testament][index].completed;
+            localStorage.setItem('readings', JSON.stringify(readings));
+            loadReadings();
+            updateStats();
+        }
+
+        // Eliminar lectura
+        function deleteReading(index, testament) {
+            const readings = JSON.parse(localStorage.getItem('readings'));
+            readings[testament].splice(index, 1);
+            localStorage.setItem('readings', JSON.stringify(readings));
+            loadReadings();
+            updateStats();
+        }
+
+        // Modo oscuro
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        function loadDarkMode() {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+        }
+
+        // Estadísticas
+        function toggleStats() {
+            const stats = document.getElementById('statsContainer');
+            stats.style.display = stats.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function updateStats() {
+            const readings = JSON.parse(localStorage.getItem('readings')) || { AT: [], NT: [] };
+            
+            const totalAT = readings.AT.length;
+            const completedAT = readings.AT.filter(r => r.completed).length;
+            const atPercentage = totalAT > 0 ? Math.round((completedAT / totalAT) * 100) : 0;
+            
+            const totalNT = readings.NT.length;
+            const completedNT = readings.NT.filter(r => r.completed).length;
+            const ntPercentage = totalNT > 0 ? Math.round((completedNT / totalNT) * 100) : 0;
+            
+            document.getElementById('atProgress').style.width = `${atPercentage}%`;
+            document.getElementById('ntProgress').style.width = `${ntPercentage}%`;
+        }
+
+        // Exportar a PDF (simulado)
+        function exportToPDF() {
+            alert('Función de exportación a PDF simulada. En una implementación real, usarías una librería como jsPDF o el servidor para generar el PDF.');
+            // Ejemplo real usaría:
+            // const doc = new jsPDF();
+            // doc.text('Tu agenda de lecturas', 10, 10);
+            // doc.save('lecturas-biblicas.pdf');
+        }
+
+        // Datos iniciales (solo se agregan si no hay datos existentes)
+        function initializeSampleData() {
+            if (!localStorage.getItem('readings')) {
+                const sampleData = {
+                    AT: [
+                        { text: "Génesis 2-3", date: "2023-11-01", completed: false },
+                        { text: "Salmo 1:3", date: "2023-11-02", completed: true },
+                        { text: "Isaías 61:3", date: "2023-11-03", completed: false }
+                    ],
+                    NT: [
+                        { text: "Mateo 7:17-19", date: "2023-11-04", completed: false },
+                        { text: "Lucas 13:6-9", date: "2023-11-05", completed: true },
+                        { text: "Apocalipsis 22", date: "2023-11-06", completed: false }
+                    ]
+                };
+                localStorage.setItem('readings', JSON.stringify(sampleData));
+                loadReadings();
+                updateStats();
+            }
+        }
+
+        // Inicializar datos de muestra al cargar (opcional)
+        initializeSampleData();
+    </script>
+</body>
+</html>
